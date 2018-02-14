@@ -1,0 +1,9 @@
+initialize
+var to 12;
+begin
+var_1 := 123;
+if (1 < 2) then { }
+while (1 < 2) do { lab := 136 ; }
+var_2 := ABC;
+last := 0;
+end

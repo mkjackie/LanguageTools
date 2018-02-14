@@ -1,0 +1,169 @@
+
+import java_cup.runtime.*;
+   
+/*
+	This code gets added to the generated parser class 
+ */
+parser code {:
+
+    public void syntax_error(Symbol tok) {
+        String msg = "Syntax error at token " + tok.value 
+        	+ " at line " + tok.left + ", column " + tok.right;
+      	System.out.println(msg);
+    }
+    
+:}
+
+ 
+   
+/* -------------------------------------------
+ * Terminals - tokens returned by the lexer
+ * ------------------------------------------- */
+ 
+terminal           	ASMT_SYMBOL, SEMICOLON, LEFTBRACKET, RIGHTBRACKET, PLUS, 
+                        MINUS, STAR, SLASH, LCBRACKET, RCBRACKET, SIGN, ARROW, 
+                        EQUAL, INITIALIZE, BEGIN, END, IF, THEN, WHILE, DO, TO;
+terminal Integer   	INTEGER;
+terminal String		LABEL;
+
+   
+/* -------------------------------------------
+ * Non-terminals
+ * ------------------------------------------- */
+ 
+
+non terminal	ASTNode 	program, vardecls, vardecl, 
+                                statements, statement, intexpr, 
+                                product, binopp, binops, primary,
+                                intcompare, intcompbinop;
+
+
+/* -------------------------------------------
+ * The Grammar
+ * ------------------------------------------- */
+
+program                 ::= INITIALIZE vardecls:vars BEGIN statements:stmts END
+                        {: ASTNode program = new ASTNode("program");
+                           program.addChild(vars);
+                           program.addChild(stmts);
+                           RESULT = program;
+                        :}
+                        ;
+vardecls                ::= vardecls:vars vardecl:var
+                        {: ASTNode vardecls = new ASTNode("vardecls");
+                           vardecls.addChild(var);
+                           RESULT = vardecls;
+                        :}
+                        |
+                        ;
+vardecl                 ::= LABEL:lbl TO INTEGER:inte SEMICOLON
+                        {: ASTNode vardecl = new ASTNode("vardecl");
+                           //System.out.println("Parsed vardecl " + lbl + " with value " + inte);
+                           RESULT = vardecl;
+                        :}
+                        ;
+statements              ::= statements:n statement:stmt
+                        {: ASTNode statements = new ASTNode("statements");
+                           statements.addChild(stmt);
+                           RESULT = statements;
+                        :}
+                        |
+                        ;
+statement               ::= LABEL:lbl ASMT_SYMBOL intexpr:exp SEMICOLON
+                        {: ASTNode stmt = new ASTNode("statement");
+                            stmt.addChild(exp);
+                           System.out.println("Parsed statement " + lbl + 
+                            " to value " + exp);
+                           RESULT = stmt;
+                        :}
+                        | IF LEFTBRACKET intcompare:cmp RIGHTBRACKET THEN LCBRACKET statements:stmt4 RCBRACKET
+                        {: ASTNode stmt1 = new ASTNode("statement");
+                            System.out.println("Parsed if-statement "); 
+                            stmt1.addChild(cmp);
+                            stmt1.addChild(stmt4);
+                            RESULT = stmt1;
+                        :}
+                        | WHILE LEFTBRACKET intcompare:cmp2 RIGHTBRACKET DO LCBRACKET statements:stmt3 RCBRACKET
+                        {: ASTNode stmt2 = new ASTNode("statement");
+                            System.out.println("Parsed loop statement "); 
+                            stmt2.addChild(cmp2);
+                            stmt2.addChild(stmt3);
+                            RESULT = stmt2;
+                        :}
+                        ;
+intexpr                 ::= intexpr:expr1 binops:b product:expr2
+                        {: ASTNode intexpr = new ASTNode("intexpr");
+                           intexpr.addChild(expr1);
+                           intexpr.addChild(b);
+                           intexpr.addChild(expr2);                           
+                           RESULT = intexpr;
+                        :}
+                        | product
+                        {: ASTNode intexpr = new ASTNode("intexpr");                       
+                           RESULT = intexpr;
+                        :}
+                        ;
+product                 ::= product:p binopp:b primary:prim
+                        {: ASTNode product = new ASTNode("product");
+                           product.addChild(p);
+                           product.addChild(b);
+                           product.addChild(prim);                           
+                           RESULT = product;
+                        :}
+                        | primary:p
+                        {:                 
+                           RESULT = p;
+                        :}
+                        ;
+
+primary                 ::= LEFTBRACKET intexpr:expr RIGHTBRACKET
+                        {: ASTNode intexpr = new ASTNode("intexpr");                       
+                           RESULT = intexpr;
+                        :}
+                        | LABEL:lbl
+                        {: RESULT = new ASTNode("primary", "LABEL", lbl);
+                        :}
+                        | INTEGER:integ
+                        {: RESULT = new ASTNode("primary", "INTEGER", "" + integ);
+                        :}
+                        
+                        ;
+binopp                  ::= STAR
+                        {:
+                        RESULT = new ASTNode("binopp", "STAR", "*");
+                        :}
+                        | SLASH
+                        {:
+                        RESULT = new ASTNode("binopp", "SLASH", "/");
+                        :}
+                        ;
+binops                  ::= PLUS
+                        {:
+                        RESULT = new ASTNode("binops", "PLUS", "+");
+                        :}
+                        | MINUS
+                        {:
+                        RESULT = new ASTNode("binops", "MINUS", "-");
+                        :}
+                        ;
+
+intcompare              ::= intexpr:expr1 intcompbinop:cmp intexpr:expr2
+                        {: ASTNode intcompare = new ASTNode("intcompare");
+                           intcompare.addChild(expr1);
+                           intcompare.addChild(cmp);
+                           intcompare.addChild(expr2);                           
+                           RESULT = intcompare;
+                        :}
+                        ;
+intcompbinop            ::= SIGN  
+                        {: RESULT = new ASTNode("intcompbinop", "SIGN", "<"); 
+                        :} 
+                        | ARROW
+                        {: RESULT = new ASTNode("intcompbinop", "ARROW", "<=");
+                        :}
+                        | EQUAL
+                        {: RESULT = new ASTNode("intcompbinop", "EQUAL", "=="); 
+                        :}
+                        ;
+
+
